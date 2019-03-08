@@ -1,20 +1,20 @@
 # conlleval
 
-Another python port of the perl evaluation script for the CoNLL-2000 shard 
-task.
+This is a pure python port of the perl evaluation script for the CoNLL-2000 
+shard task. Supports both IOB2 and IOBES formats.
 
 ## Getting Started ##
 
 Either get this package through PyPI (`pip install conlleval`) or install
-from this repository (`python setup.py install`).
+it from this repository after cloning it (`python setup.py install`).
 
-You can call this package directly to run as a script:
+You can run this package directly:
 
 ```
 python -m conlleval tests/cases/input-001.txt
 ```
 
-Or, you can use this package as a library:
+or import this package as a library:
 
 ```python
 >>> import conlleval
@@ -67,6 +67,4 @@ jetliners NNS I-NP I-NP
 * The original perl script is not available at the official website anymore. 
 You can access it [here](https://github.com/robertostling/efselab/blob/master/3rdparty/conlleval.perl)
 instead.
-
 * Latex format is not supported yet. (Any contribution is welcome)
-
