@@ -17,7 +17,7 @@ python -m conlleval tests/cases/input-001.txt
 Or, you can use this package as a library:
 
 ```python
->>> from conlleval import evaluate
+>>> import conlleval
 >>> lines = """Rockwell NNP B-NP I-NP
 International NNP I-NP I-NP
 Corp. NNP I-NP I-NP
