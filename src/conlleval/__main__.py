@@ -1,10 +1,7 @@
-import io
 import argparse
 import sys
-import re
-import collections
 
-from . import conlleval
+from .conlleval import *
 
 
 def parse_args():
@@ -27,35 +24,6 @@ def parse_args():
     return parser.parse_args()
 
 
-def report(summary):
-    overall = summary["overall"]
-    stats, evals = overall["stats"], overall["evals"]
-    out = io.StringIO()
-    out.write(f"processed {stats['all']} tokens "
-              f"with {stats['gold']} phrases; ")
-    out.write(f"found: {stats['pred']} phrases; "
-              f"correct: {stats['correct']}.\n")
-
-    if not stats['all']:
-        return out.getvalue()
-
-    acc = stats['correct'] / stats['all']
-    out.write(f"accuracy: {acc * 100:6.2f}%; ")
-    out.write(f"precision: {evals['prec'] * 100:6.2f}%; ")
-    out.write(f"recall: {evals['rec'] * 100:6.2f}%; ")
-    out.write(f"FB1: {evals['f1'] * 100:6.2f}\n")
-
-    items = sorted(summary["slots"].items(), key=lambda x: x[0])
-    for slot, data in items:
-        out.write(f"{slot:>17s}: ")
-        out.write(f"precision: {data['evals']['prec'] * 100:6.2f}%; ")
-        out.write(f"recall: {data['evals']['rec'] * 100:6.2f}%; ")
-        out.write(f"FB1: {data['evals']['f1'] * 100:6.2f}  ")
-        out.write(f"{data['stats']['pred']:d}\n")
-
-    return out.getvalue()
-
-
 def stripr(iterable):
     for line in iterable:
         yield line.rstrip("\r\n")
@@ -67,7 +35,7 @@ def main():
     output = sys.stdout
     if args.input is not None:
         input = open(args.input, "r")
-    res = conlleval.evaluate(
+    res = evaluate(
         lines=stripr(input),
         boundary=args.boundary,
         delimiter=args.delimiter,
