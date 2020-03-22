@@ -14,7 +14,7 @@ You can run this package directly:
 python -m conlleval tests/cases/input-001.txt
 ```
 
-or import this package as a library:
+or import it as a library:
 
 ```python
 >>> import conlleval
@@ -46,25 +46,53 @@ Boeing NNP B-NP I-NP
 747 CD I-NP I-NP
 jetliners NNS I-NP I-NP
 . . O O
-"""
->>> res = conlleval.evaluate(lines.splitlines())
+""".splitlines()
+>>> res = conlleval.evaluate(lines)
 >>> import pprint
 >>> pprint.pprint(res)
-{'overall': {'evals': {'f1': 0.9032258064516129,
-                       'prec': 0.875,
-                       'rec': 0.9333333333333333},
-             'stats': {'all': 28, 'correct': 14, 'gold': 15, 'pred': 16}},
- 'slots': {'NP': {'evals': {'f1': 1.0, 'prec': 1.0, 'rec': 1.0},
-                  'stats': {'correct': 9, 'gold': 9, 'pred': 9}},
-           'PP': {'evals': {'f1': 0.8, 'prec': 0.6666666666666666, 'rec': 1.0},
-                  'stats': {'correct': 2, 'gold': 2, 'pred': 3}},
-           'VP': {'evals': {'f1': 0.75, 'prec': 0.75, 'rec': 0.75},
-                  'stats': {'correct': 3, 'gold': 4, 'pred': 4}}}}
+{'overall': {'chunks': {'evals': {'f1': 0.9032258064516129,
+                                  'prec': 0.875,
+                                  'rec': 0.9333333333333333},
+                        'stats': {'correct': 14, 'gold': 15, 'pred': 16}},
+             'tags': {'evals': {'f1': 0.8214285714285714,
+                                'prec': 0.8214285714285714,
+                                'rec': 0.8214285714285714},
+                      'stats': {'correct': 23, 'gold': 28, 'pred': 28}}},
+ 'slots': {'chunks': {'NP': {'evals': {'f1': 1.0, 'prec': 1.0, 'rec': 1.0},
+                             'stats': {'correct': 9, 'gold': 9, 'pred': 9}},
+                      'PP': {'evals': {'f1': 0.8,
+                                       'prec': 0.6666666666666666,
+                                       'rec': 1.0},
+                             'stats': {'correct': 2, 'gold': 2, 'pred': 3}},
+                      'VP': {'evals': {'f1': 0.75, 'prec': 0.75, 'rec': 0.75},
+                             'stats': {'correct': 3, 'gold': 4, 'pred': 4}}},
+           'tags': {'NP': {'evals': {'f1': 0.8000000000000002,
+                                     'prec': 0.8,
+                                     'rec': 0.8},
+                           'stats': {'correct': 16, 'gold': 20, 'pred': 20}},
+                    'PP': {'evals': {'f1': 0.8,
+                                     'prec': 0.6666666666666666,
+                                     'rec': 1.0},
+                           'stats': {'correct': 2, 'gold': 2, 'pred': 3}},
+                    'VP': {'evals': {'f1': 0.888888888888889,
+                                     'prec': 1.0,
+                                     'rec': 0.8},
+                           'stats': {'correct': 4, 'gold': 5, 'pred': 4}}}}}
+>>> print(conlleval.report(res))
+processed 28 tokens with 15 phrases; found: 16 phrases; correct: 14.
+accuracy:  82.14%; precision:  87.50%; recall:  93.33%; FB1:  90.32
+               NP: precision: 100.00%; recall: 100.00%; FB1: 100.00  9
+               PP: precision:  66.67%; recall: 100.00%; FB1:  80.00  3
+               VP: precision:  75.00%; recall:  75.00%; FB1:  75.00  4
 ```
+
+**Breaking Changes in v0.2**
+
+* Now `evaluate` function returns evaluation results for chunks (consecutive tags of identical types) and tags separately. In the previous version, the distinction wasn't clear, causing confusion regarding the counts shown in `['overall']['stats']['all']` specifically.
 
 ## Notes ##
 
 * The original perl script is not available at the official website anymore. 
 You can access it [here](https://github.com/robertostling/efselab/blob/master/3rdparty/conlleval.perl)
 instead.
-* Latex format is not supported yet. (Any contribution is welcome)
+* Latex format is not supported yet. (Any contribution is welcomed)
