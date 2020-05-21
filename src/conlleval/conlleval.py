@@ -1,4 +1,4 @@
-__all__ = ["FormatError", "Statistics", "evaluate", "report"]
+__all__ = ["FormatError", "Statistics", "evaluate", "report", "score"]
 
 import io
 import re
@@ -34,6 +34,25 @@ def parse_tag(t):
 
 
 def extract_features(lines, delimiter, boundary, otag):
+    """
+    A feature extractor for python equivalent for the `conlleval.pl` script
+    used for measuring slot filling performance in the CoNLL-2000 shared task.
+
+    Arguments:
+        lines (iterator-like object): an iterator-like object that returns
+            one line of a `conlleval`-style prediction-target text file
+            at a time.
+        delimiter (str): the delimiting character used to split tokens in
+            a line. (default: default python `str.split` behavior)
+        boundary (str): the boundary string that is used to indicate an end of
+            a sentence (default: -X-)
+        otag (str): the tag for items that do not belong any slots.
+            (default: O)
+
+    Returns:
+        features (iterator-like object): an iterator-like object that returns
+            a triplet of `conlleval`-style item-prediction-target.
+    """
     num_features = None
     for line in lines:
         if delimiter is None:
@@ -51,6 +70,40 @@ def extract_features(lines, delimiter, boundary, otag):
             raise FormatError(
                 'unexpected number of features in line %s' % line)
         yield features[0], features[-2], features[-1]
+
+
+def score(y_true, y_pred, first_feature=None, delimiter=None,
+          boundary="-X-", otag="O"):
+    """
+    A scoring function that can be used in python scripts for model evaluation.
+
+    Arguments:
+        y_true (iterator-like object): an iterator-like object that returns
+            one line of a `conlleval`-style predictions.
+        y_pred (iterator-like object): an iterator-like object that returns
+            one line of a `conlleval`-style prediction-target text file
+            at a time. It should be the same length as `y_true`
+        first_feature (iterator-like object): an iterator-like object that
+            returns a list of first features .It should be the same
+            length as `y_true` or `None`. It is replaced by a string
+            not matching to boundary if `first_feature=None`.
+            (default: None)
+            at a time.
+        delimiter (str): the delimiting character used to split tokens in
+            a line. (default: default python `str.split` behavior)
+        boundary (str): the boundary string that is used to indicate an end of
+            a sentence (default: -X-)
+        otag (str): the tag for items that do not belong any slots.
+            (default: O)
+
+    Returns:
+        a dictionary object that contains all information that used to be
+        returned by the old `conlleval.pl` perl script.
+    """
+    first_feature = first_feature or [f"!{boundary}"] * len(y_true)
+
+    features = zip(first_feature, y_true, y_pred)
+    return _evaluate(features, delimiter, boundary, otag)
 
 
 def evaluate(lines, delimiter=None, boundary="-X-", otag="O"):
@@ -80,9 +133,6 @@ def evaluate(lines, delimiter=None, boundary="-X-", otag="O"):
 
 def _evaluate(features, delimiter=None, boundary="-X-", otag="O"):
     """
-    Python equivalent for the `conlleval.pl` Perl script, which was
-    used for measuring slot filling performance in the CoNLL-2000 shared task.
-
     Arguments:
         features (iterator-like object): an iterator-like object that returns
             a triplet of `conlleval`-style item-prediction-target.
