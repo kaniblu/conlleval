@@ -3,6 +3,7 @@ __all__ = ["FormatError", "Statistics", "evaluate", "report", "score"]
 import io
 import re
 
+import itertools
 import collections
 
 
@@ -100,7 +101,7 @@ def score(y_true, y_pred, first_feature=None, delimiter=None,
         a dictionary object that contains all information that used to be
         returned by the old `conlleval.pl` perl script.
     """
-    first_feature = first_feature or [f"!{boundary}"] * len(y_true)
+    first_feature = first_feature or itertools.repeat(f"!{boundary}")
 
     features = zip(first_feature, y_true, y_pred)
     return _evaluate(features, delimiter, boundary, otag)
