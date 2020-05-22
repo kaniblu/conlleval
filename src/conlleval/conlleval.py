@@ -1,8 +1,9 @@
-__all__ = ["FormatError", "Statistics", "evaluate", "report"]
+__all__ = ["FormatError", "Statistics", "evaluate", "report", "score"]
 
 import io
 import re
 
+import itertools
 import collections
 
 
@@ -33,6 +34,79 @@ def parse_tag(t):
     return m.groups() if m else (t, '')
 
 
+def extract_features(lines, delimiter, boundary, otag):
+    """
+    A feature extractor for python equivalent for the `conlleval.pl` script
+    used for measuring slot filling performance in the CoNLL-2000 shared task.
+
+    Arguments:
+        lines (iterator-like object): an iterator-like object that returns
+            one line of a `conlleval`-style prediction-target text file
+            at a time.
+        delimiter (str): the delimiting character used to split tokens in
+            a line. (default: default python `str.split` behavior)
+        boundary (str): the boundary string that is used to indicate an end of
+            a sentence (default: -X-)
+        otag (str): the tag for items that do not belong any slots.
+            (default: O)
+
+    Returns:
+        features (iterator-like object): an iterator-like object that returns
+            a triplet of `conlleval`-style item-prediction-target.
+    """
+    num_features = None
+    for line in lines:
+        if delimiter is None:
+            features = line.split()
+        else:
+            features = line.split(delimiter)
+        if num_features is None:
+            num_features = len(features)
+        elif num_features != len(features) and len(features) != 0:
+            raise FormatError('unexpected number of features: %d (%d)' %
+                              (len(features), num_features))
+        if len(features) == 0 or features[0] == boundary:
+            features = [boundary, otag, otag]
+        if len(features) < 3:
+            raise FormatError(
+                'unexpected number of features in line %s' % line)
+        yield features[0], features[-2], features[-1]
+
+
+def score(y_true, y_pred, first_feature=None, delimiter=None,
+          boundary="-X-", otag="O"):
+    """
+    A scoring function that can be used in python scripts for model evaluation.
+
+    Arguments:
+        y_true (iterator-like object): an iterator-like object that returns
+            one line of a `conlleval`-style predictions.
+        y_pred (iterator-like object): an iterator-like object that returns
+            one line of a `conlleval`-style prediction-target text file
+            at a time. It should be the same length as `y_true`
+        first_feature (iterator-like object): an iterator-like object that
+            returns a list of first features .It should be the same
+            length as `y_true` or `None`. It is replaced by a string
+            not matching to boundary if `first_feature=None`.
+            (default: None)
+            at a time.
+        delimiter (str): the delimiting character used to split tokens in
+            a line. (default: default python `str.split` behavior)
+        boundary (str): the boundary string that is used to indicate an end of
+            a sentence (default: -X-)
+        otag (str): the tag for items that do not belong any slots.
+            (default: O)
+
+    Returns:
+        a dictionary object that contains all information that used to be
+        returned by the old `conlleval.pl` perl script.
+    """
+    first_feature = first_feature or itertools.repeat(f"!{boundary}")
+
+    features = zip(first_feature, y_true, y_pred)
+    return _evaluate(features, delimiter, boundary, otag)
+
+
 def evaluate(lines, delimiter=None, boundary="-X-", otag="O"):
     """
     Python equivalent for the `conlleval.pl` Perl script, which was
@@ -53,32 +127,37 @@ def evaluate(lines, delimiter=None, boundary="-X-", otag="O"):
         a dictionary object that contains all information that used to be
         returned by the old `conlleval.pl` perl script.
     """
+
+    features = extract_features(lines, delimiter, boundary, otag)
+    return _evaluate(features, delimiter, boundary, otag)
+
+
+def _evaluate(features, delimiter=None, boundary="-X-", otag="O"):
+    """
+    Arguments:
+        features (iterator-like object): an iterator-like object that returns
+            a triplet of `conlleval`-style item-prediction-target.
+        delimiter (str): the delimiting character used to split tokens in
+            a line. (default: default python `str.split` behavior)
+        boundary (str): the boundary string that is used to indicate an end of
+            a sentence (default: -X-)
+        otag (str): the tag for items that do not belong any slots.
+            (default: O)
+
+    Returns:
+        a dictionary object that contains all information that used to be
+        returned by the old `conlleval.pl` perl script.
+    """
     stats = Statistics()
-    num_features = None  # number of features per line
     in_correct = False  # currently processed chunks is correct until now
     last_correct = otag  # previous chunk tag in corpus
     last_correct_type = ''  # type of previously identified chunk tag
     last_guessed = otag  # previously identified chunk tag
     last_guessed_type = ''  # type of previous chunk tag in corpus
 
-    for line in lines:
-        if delimiter is None:
-            features = line.split()
-        else:
-            features = line.split(delimiter)
-        if num_features is None:
-            num_features = len(features)
-        elif num_features != len(features) and len(features) != 0:
-            raise FormatError('unexpected number of features: %d (%d)' %
-                              (len(features), num_features))
-        if len(features) == 0 or features[0] == boundary:
-            features = [boundary, otag, otag]
-        if len(features) < 3:
-            raise FormatError(
-                'unexpected number of features in line %s' % line)
-        guessed, guessed_type = parse_tag(features.pop())
-        correct, correct_type = parse_tag(features.pop())
-        first_item = features.pop(0)
+    for first_item, gold, pred in features:
+        guessed, guessed_type = parse_tag(pred)
+        correct, correct_type = parse_tag(gold)
         if first_item == boundary:
             guessed = otag
         end_correct = end_of_chunk(last_correct, correct,
